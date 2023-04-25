@@ -10,7 +10,7 @@
 [license]: LICENSE.md
 [project_format]: docs/ProjectFormat.md
 
-[img_build]: https://img.shields.io/appveyor/ci/Mrgaton/DisableWindowsDefender/master.svg?style=flat
+[img_build]: https://ci.appveyor.com/api/projects/status/qht9je5qa5kr5rgd?svg=true&style=flat
 [img_codefactor]: https://www.codefactor.io/repository/github/mrgaton/DisableWindowsDefender/badge
 [img_gitter]: https://img.shields.io/gitter/room/Mrgaton/DisableWindowsDefender.svg?style=flat
 [img_license]: https://img.shields.io/github/license/Mrgaton/DisableWindowsDefender.svg?style=flat
