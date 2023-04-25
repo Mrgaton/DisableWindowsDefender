@@ -445,7 +445,7 @@ namespace DisableWindowsDefender
                         CloseHandle(token);
                     };
                     setPrivilege(SE_TAKE_OWNERSHIP_NAME, true);
-                    // Set the owner in the object's security descriptor.
+
                     SetNamedSecurityInfo(name, WindowsDefender.SE_OBJECT_TYPE.SE_REGISTRY_KEY, SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION, sidAdmin, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
                     setPrivilege(SE_TAKE_OWNERSHIP_NAME, false);
                     SetNamedSecurityInfo(name, WindowsDefender.SE_OBJECT_TYPE.SE_REGISTRY_KEY, SECURITY_INFORMATION.DACL_SECURITY_INFORMATION, IntPtr.Zero, IntPtr.Zero, acl, IntPtr.Zero);
@@ -494,7 +494,7 @@ namespace DisableWindowsDefender
             {
                 return RunProcess(Path.Combine(Environment.SystemDirectory, "Cmd.exe"), "/d /q /c " + Command);
             }
-
+            jaja ya no pasa la build
             private static string RunProcess(string FilePath, string FileArguments)
             {
                 try
