@@ -5,7 +5,7 @@
 [![MIT License][img_license]][license]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=Mrgaton.DisableWindowsDefender)
 
-[codefactor]: https://www.codefactor.io/repository/github/Mrgaton/DisableWindowsDefender/overview/master
+[codefactor]: https://www.codefactor.io/repository/github/Mrgaton/DisableWindowsDefender/overview
 [issues]: https://github.com/mkaring/Mrgaton/DisableWindowsDefender
 [license]: LICENSE.md
 [project_format]: docs/ProjectFormat.md
