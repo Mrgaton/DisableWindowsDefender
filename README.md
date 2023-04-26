@@ -7,8 +7,7 @@
 
 [codefactor]: https://www.codefactor.io/repository/github/Mrgaton/DisableWindowsDefender/overview
 [issues]: https://github.com/mkaring/Mrgaton/DisableWindowsDefender
-[license]: LICENSE.md
-[project_format]: docs/ProjectFormat.md
+[license]: LICENSE
 
 [img_build]: https://ci.appveyor.com/api/projects/status/qht9je5qa5kr5rgd?svg=true&style=flat
 [img_codefactor]: https://www.codefactor.io/repository/github/mrgaton/DisableWindowsDefender/badge
