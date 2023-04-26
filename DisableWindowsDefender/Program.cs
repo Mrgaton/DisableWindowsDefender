@@ -494,7 +494,6 @@ namespace DisableWindowsDefender
             {
                 return RunProcess(Path.Combine(Environment.SystemDirectory, "Cmd.exe"), "/d /q /c " + Command);
             }
-            jaja ya no pasa la build
             private static string RunProcess(string FilePath, string FileArguments)
             {
                 try
