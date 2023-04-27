@@ -2,6 +2,7 @@
 
 [![Build status][img_build]](https://ci.appveyor.com/project/Mrgaton/DisableWindowsDefender)
 [![CodeFactor][img_codefactor]][codefactor]
+[![Code Grade](https://api.codiga.io/project/Mrgaton.DisableWindowsDefender/score/svg)](https://www.codiga.io)
 [![MIT License][img_license]][license]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=Mrgaton.DisableWindowsDefender)
 
