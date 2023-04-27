@@ -4,7 +4,6 @@
 [![CodeFactor][img_codefactor]][codefactor]
 [![MIT License][img_license]][license]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=Mrgaton.DisableWindowsDefender)
-![program_runs](https://visitor-badge.laobi.icu/badge?page_id=Runs.DisableWindowsDefender&left_color=red&right_color=green&left_text=Run_times)
 
 [codefactor]: https://www.codefactor.io/repository/github/Mrgaton/DisableWindowsDefender/overview
 [issues]: https://github.com/mkaring/Mrgaton/DisableWindowsDefender
