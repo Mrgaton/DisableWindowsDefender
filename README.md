@@ -16,3 +16,6 @@
 
 
 Just disables the WindowsDefender
+
++ No need to restart in safe mode
+- Tamper protection must be disabled frist
