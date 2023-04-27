@@ -2,7 +2,7 @@
 
 [![Build status][img_build]](https://ci.appveyor.com/project/Mrgaton/DisableWindowsDefender)
 [![CodeFactor][img_codefactor]][codefactor]
-[![Codacy](https://app.codacy.com/project/badge/Grade/22d2175b89d8414d921d0196984307bd)](https://www.codacy.com/gh/Mrgaton/DisableWindowsDefender/dashboard)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/5da412a3e4554c5ca4283f929b543049)](https://app.codacy.com/gh/Mrgaton/DisableWindowsDefender)
 
 [![MIT License][img_license]][license]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=Mrgaton.DisableWindowsDefender)
