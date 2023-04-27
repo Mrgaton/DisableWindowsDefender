@@ -2,7 +2,9 @@
 
 [![Build status][img_build]](https://ci.appveyor.com/project/Mrgaton/DisableWindowsDefender)
 [![CodeFactor][img_codefactor]][codefactor]
-[![Code Grade](https://api.codiga.io/project/Mrgaton.DisableWindowsDefender/score/svg)](https://www.codiga.io)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Mrgaton_DisableWindowsDefender&metric=security_rating)](https://sonarcloud.io/dashboard?id=Mrgaton_DisableWindowsDefender)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Mrgaton_DisableWindowsDefender&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=Mrgaton_DisableWindowsDefender)
+
 [![MIT License][img_license]][license]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=Mrgaton.DisableWindowsDefender)
 
