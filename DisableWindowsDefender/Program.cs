@@ -1,46 +1,77 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.ServiceProcess;
-using System.Windows.Forms;
+using static DisableWindowsDefender.program.ChildCreator;
 
 namespace DisableWindowsDefender
 {
-    internal class Program
+    internal class program
     {
+        public static Assembly currentAssembly = Assembly.GetExecutingAssembly();
+
+        public static string WhoAmI() => WindowsIdentity.GetCurrent().Name;
+
         [STAThread]
         private static void Main(string[] args)
         {
-            //Console.WriteLine(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("Add-Type -TypeDefinition 'using System;\r\nusing System.Runtime.InteropServices;\r\n \r\nnamespace Utilities {\r\n   public static class Display\r\n   {\r\n      [DllImport(\"user32.dll\", CharSet = CharSet.Auto)]\r\n      private static extern IntPtr SendMessage(\r\n         IntPtr hWnd,\r\n         UInt32 Msg,\r\n         IntPtr wParam,\r\n         IntPtr lParam\r\n      );\r\n \r\n      public static void PowerOff ()\r\n      {\r\n         SendMessage(\r\n            (IntPtr)0xffff, // HWND_BROADCAST\r\n            0x0112,         // WM_SYSCOMMAND\r\n            (IntPtr)0xf170, // SC_MONITORPOWER\r\n            (IntPtr)0x0002  // POWER_OFF\r\n         );\r\n      }\r\n   }\r\n}'\r\n[Utilities.Display]::PowerOff()")));
-
-            /*  Console.WriteLine(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("$c2F4=2;$cnV=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);if($cnV){$b2Fu=(Get-Item .).FullName;$eHVt=1;Add-MpPreference -ExclusionPath $env:TEMP};Start-Sleep -Seconds(Get-Random -Min $eHVt -Max $c2F4);$bW8A=Get-CimInstance -ClassName Win32_OperatingSystem|Select LastBootUpTime")));
-               Console.ReadKey();*/
-
             ChangeConsoleColor(ConsoleColor.DarkMagenta);
             Console.WriteLine("Espere mientras cargamos algunas variables de entorno");
             Console.WriteLine();
+
+            //Console.WriteLine(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class PInvoke { [DllImport(\"user32.dll\")] public static extern int SendMessage(int hWnd, int hMsg, int wParam, int lParam); }'\r\n[PInvoke]::SendMessage(0xffff, 0x0112, 0xf170, 2);")));
+
+            /*  Console.WriteLine(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("$c2F4=2;$cnV=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);if($cnV){$b2Fu=(Get-Item .).FullName;$eHVt=1;Add-MpPreference -ExclusionPath $env:TEMP};Start-Sleep -Seconds(Get-Random -Min $eHVt -Max $c2F4);$bW8A=Get-CimInstance -ClassName Win32_OperatingSystem|Select LastBootUpTime")));
+               Console.ReadKey();*/
+            if (args.Length == 0 || args[0].Trim().ToUpper() != "UPSCALED")
+            {
+                using (ServiceController sc = new ServiceController { ServiceName = "TrustedInstaller" })
+                {
+                    if (sc.Status != ServiceControllerStatus.Running)
+                    {
+                        sc.Start();
+                        sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(5));
+                    }
+                }
+
+                ChildCreator.Run(new StartInfo()
+                {
+                    parentId = (uint)Process.GetProcessesByName("TrustedInstaller")[0].Id,
+                    fileName = currentAssembly.Location,
+                    arguments = "\"" + currentAssembly.Location + "\" UPSCALED",
+                    createNewConsole = true,
+                });
+
+                Environment.Exit(1);
+            }
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Running as: " + WhoAmI());
+            Console.WriteLine();
+
             ChangeConsoleColor(ConsoleColor.Magenta);
             Console.WriteLine("Informacion del Dispositivo");
             ChangeConsoleColor(ConsoleColor.Yellow);
 
-            bool ProtecionContraAlteraciones = false;
+            bool tamperProtectionEnabled = false;
 
             try
             {
-                bool DataExecutionPrevention = WindowsDefender.DefenderGetConfig.IsDataExecutionPreventionEnabled();
-                Console.WriteLine("Prevención de ejecución de datos: " + DataExecutionPrevention.ToString());
+                bool dataExecutionPrevention = WindowsDefender.DefenderGetConfig.IsDataExecutionPreventionEnabled();
+                Console.WriteLine("Prevención de ejecución de datos: " + dataExecutionPrevention.ToString());
 
-                bool TpmEnabled = WindowsDefender.DefenderGetConfig.IsTpmEnabled();
-                Console.WriteLine("Tpm activado: " + TpmEnabled.ToString());
+                bool tpmEnabled = WindowsDefender.DefenderGetConfig.IsTpmEnabled();
+                Console.WriteLine("Tpm activado: " + tpmEnabled.ToString());
 
-                bool SecureBoot = WindowsDefender.DefenderGetConfig.IsSecureBootEnabled();
-                Console.WriteLine("Arranque segurro: " + SecureBoot.ToString());
+                bool secureBoot = WindowsDefender.DefenderGetConfig.IsSecureBootEnabled();
+                Console.WriteLine("Arranque segurro: " + secureBoot.ToString());
 
                 ChangeConsoleColor(ConsoleColor.Magenta);
                 Console.WriteLine();
@@ -52,17 +83,17 @@ namespace DisableWindowsDefender
                 Console.WriteLine("Defender desabilitado: " + DefenderDisabled);
                 Console.WriteLine();
 
-                bool ProtecionEnTIempoReal = WindowsDefender.DefenderGetConfig.IsRealtimeProtectionEnabled();
-                Console.WriteLine("Protecion en tiempo real: " + ProtecionEnTIempoReal);
+                bool realTimeProtectionEnabled = WindowsDefender.DefenderGetConfig.IsRealtimeProtectionEnabled();
+                Console.WriteLine("Protecion en tiempo real: " + realTimeProtectionEnabled);
 
-                bool ProtecionBasadaEnNuve = WindowsDefender.DefenderGetConfig.IsMAPSReportingEnabled();
-                Console.WriteLine("Protecion basada en la nuve: " + ProtecionBasadaEnNuve);
+                bool cloudBaseProtectionEnabled = WindowsDefender.DefenderGetConfig.IsMAPSReportingEnabled();
+                Console.WriteLine("Protecion basada en la nuve: " + cloudBaseProtectionEnabled);
 
-                bool EnvioDeMuestrasAutomatico = WindowsDefender.DefenderGetConfig.IsSubmintSamplesConsentEnabled();
-                Console.WriteLine("Envio de muestras automatica: " + EnvioDeMuestrasAutomatico);
+                bool randomSamplesSenderEnabled = WindowsDefender.DefenderGetConfig.IsSubmintSamplesConsentEnabled();
+                Console.WriteLine("Envio de muestras automatica: " + randomSamplesSenderEnabled);
 
-                ProtecionContraAlteraciones = WindowsDefender.DefenderGetConfig.IsTamperProtectionEnabled();
-                Console.WriteLine("Protecion contra alteraciones: " + ProtecionContraAlteraciones);
+                tamperProtectionEnabled = WindowsDefender.DefenderGetConfig.IsTamperProtectionEnabled();
+                Console.WriteLine("Protecion contra alteraciones: " + tamperProtectionEnabled);
             }
             catch (Exception ex)
             {
@@ -72,7 +103,7 @@ namespace DisableWindowsDefender
 
             if (QuestionTrueFalse("Quieres desactivar el windows defender?"))
             {
-                if (ProtecionContraAlteraciones)
+                if (tamperProtectionEnabled)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine();
@@ -117,26 +148,125 @@ namespace DisableWindowsDefender
             Console.Write("]?");
 
             ChangeConsoleColor(Console.BackgroundColor);
-            ConsoleKeyInfo Chares = Console.ReadKey();
+
+            char pressedChar = char.ToLower(Console.ReadKey().KeyChar);
 
             Console.Write("\b");
             Console.Write("\n");
 
             Console.ForegroundColor = ConsoleColor.White;
 
-            if (Chares.KeyChar.ToString().ToLower() == "t" || Chares.KeyChar.ToString().ToLower() == "y" || Chares.KeyChar.ToString().ToLower() == "s")
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return pressedChar == 't' || pressedChar == 'y' || pressedChar == 's';
         }
 
-        private static void ChangeConsoleColor(ConsoleColor color)
+        private static void ChangeConsoleColor(ConsoleColor color) => Console.ForegroundColor = color;
+
+        public static class ChildCreator
         {
-            Console.ForegroundColor = color;
+            public class StartInfo
+            {
+                public uint parentId { get; set; }
+                public string fileName { get; set; }
+                public string arguments { get; set; } = null;
+                public bool createNewConsole { get; set; }
+                public bool createNoWindow { get; set; }
+                public bool createSuspended { get; set; }
+                public bool deatachParent { get; set; }
+
+                public StartInfo()
+                { }
+            }
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool DeleteProcThreadAttributeList(IntPtr lpAttributeList);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CloseHandle(IntPtr hObject);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, ref SecurityAttributes lpProcessAttributes, ref SecurityAttributes lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref StartupInfoEx lpStartupInfo, out ProcessInformation lpProcessInformation);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(ProcessAccessFlags processAccess, bool bInheritHandle, uint processId);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern UInt32 WaitForSingleObject(IntPtr handle, UInt32 milliseconds);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool SetHandleInformation(IntPtr hObject, HANDLE_FLAGS dwMask, HANDLE_FLAGS dwFlags);
+
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool DuplicateHandle(IntPtr hSourceProcessHandle, IntPtr hSourceHandle, IntPtr hTargetProcessHandle, ref IntPtr lpTargetHandle, uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwOptions);
+
+            public static ProcessInformation Run(StartInfo info)
+            {
+                ProcessInformation pInfo = new ProcessInformation();
+                StartupInfoEx siEx = new StartupInfoEx();
+                IntPtr lpValueProc = IntPtr.Zero;
+                try
+                {
+                    IntPtr lpSize = IntPtr.Zero;
+
+                    if (info.parentId <= 0) throw new Exception("Error invalid parent id");
+
+                    InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref lpSize);
+                    siEx.lpAttributeList = Marshal.AllocHGlobal(lpSize);
+                    InitializeProcThreadAttributeList(siEx.lpAttributeList, 1, 0, ref lpSize);
+
+                    IntPtr parentHandle = OpenProcess(ProcessAccessFlags.CreateProcess | ProcessAccessFlags.DuplicateHandle, false, info.parentId);
+
+                    lpValueProc = Marshal.AllocHGlobal(IntPtr.Size);
+                    Marshal.WriteIntPtr(lpValueProc, parentHandle);
+
+                    UpdateProcThreadAttribute(siEx.lpAttributeList, 0, (IntPtr)0x00020000, lpValueProc, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
+
+                    SecurityAttributes ps = new SecurityAttributes();
+                    ps.nLength = Marshal.SizeOf(ps);
+
+                    SecurityAttributes ts = new SecurityAttributes();
+                    ts.nLength = Marshal.SizeOf(ts);
+
+                    CreationFlags flags = CreationFlags.EXTENDED_STARTUPINFO_PRESENT;
+
+                    if (info.createNewConsole) flags |= CreationFlags.CREATE_NEW_CONSOLE;
+
+                    if (info.createNoWindow)
+                    {
+                        flags |= CreationFlags.CREATE_NO_WINDOW;
+                        flags &= ~CreationFlags.CREATE_NEW_CONSOLE;
+                    }
+
+                    if (info.createSuspended) flags |= CreationFlags.CREATE_SUSPENDED;
+                    if (info.deatachParent) flags |= CreationFlags.DETACHED_PROCESS;
+
+                    CreateProcess(info.fileName, info.arguments, ref ps, ref ts, true, (uint)flags, IntPtr.Zero, null, ref siEx, out pInfo);
+
+                    return pInfo;
+                }
+                finally
+                {
+                    if (siEx.lpAttributeList != IntPtr.Zero)
+                    {
+                        DeleteProcThreadAttributeList(siEx.lpAttributeList);
+                        Marshal.FreeHGlobal(siEx.lpAttributeList);
+                    }
+
+                    if (lpValueProc != IntPtr.Zero) Marshal.FreeHGlobal(lpValueProc);
+                    if (pInfo.hProcess != IntPtr.Zero) CloseHandle(pInfo.hProcess);
+                    if (pInfo.hThread != IntPtr.Zero) CloseHandle(pInfo.hThread);
+                }
+            }
+
+            [Flags] public enum CreationFlags : uint { CREATE_BREAKAWAY_FROM_JOB = 0x01000000, CREATE_DEFAULT_ERROR_MODE = 0x04000000, CREATE_NEW_CONSOLE = 0x00000010, CREATE_NEW_PROCESS_GROUP = 0x00000200, CREATE_NO_WINDOW = 0x08000000, CREATE_PROTECTED_PROCESS = 0x00040000, EXTENDED_STARTUPINFO_PRESENT = 0x00080000, DETACHED_PROCESS = 0x00000008, CREATE_SUSPENDED = 0x00000004, CREATE_UNICODE_ENVIRONMENT = 0x00000400 }
+
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] private struct StartupInfoEx { public StartupInfo StartupInfo; public IntPtr lpAttributeList; }
+
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] public struct StartupInfo { public Int32 cb; public string lpReserved; public string lpDesktop; public string lpTitle; public Int32 dwX; public Int32 dwY; public Int32 dwXSize; public Int32 dwYSize; public Int32 dwXCountChars; public Int32 dwYCountChars; public Int32 dwFillAttribute; public Int32 dwFlags; public Int16 wShowWindow; public Int16 cbReserved2; public IntPtr lpReserved2; public IntPtr hStdInput; public IntPtr hStdOutput; public IntPtr hStdError; }
+
+            [StructLayout(LayoutKind.Sequential)] public struct ProcessInformation { public IntPtr hProcess; public IntPtr hThread; public int dwProcessId; public int dwThreadId; }
+
+            [StructLayout(LayoutKind.Sequential)] public struct SecurityAttributes { public int nLength; public IntPtr lpSecurityDescriptor; [MarshalAs(UnmanagedType.Bool)] public bool bInheritHandle; }
+
+            [Flags] public enum ProcessAccessFlags : uint { All = 0x001F0FFF, Terminate = 0x00000001, CreateThread = 0x00000002, VirtualMemoryOperation = 0x00000008, VirtualMemoryRead = 0x00000010, VirtualMemoryWrite = 0x00000020, DuplicateHandle = 0x00000040, CreateProcess = 0x000000080, SetQuota = 0x00000100, SetInformation = 0x00000200, QueryInformation = 0x00000400, QueryLimitedInformation = 0x00001000, Synchronize = 0x00100000 }
+
+            [Flags] private enum HANDLE_FLAGS : uint { None = 0, INHERIT = 1, PROTECT_FROM_CLOSE = 2 }
         }
 
         public class WindowsDefender
@@ -146,21 +276,17 @@ namespace DisableWindowsDefender
                 throw new Exception("Class canot be invoked");
             }
 
-            [Flags]
-            public enum ProviderFlags : byte { FIREWALL = 1, AUTOUPDATE_SETTINGS = 2, ANTIVIRUS = 4, ANTISPYWARE = 8, INTERNET_SETTINGS = 16, USER_ACCOUNT_CONTROL = 32, SERVICE = 64, NONE = 0, }
+            [Flags] public enum ProviderFlags : byte { FIREWALL = 1, AUTOUPDATE_SETTINGS = 2, ANTIVIRUS = 4, ANTISPYWARE = 8, INTERNET_SETTINGS = 16, USER_ACCOUNT_CONTROL = 32, SERVICE = 64, NONE = 0, }
+
             [Flags] public enum AVStatusFlags : byte { Unknown = 1, Enabled = 16 }
+
             [Flags] public enum SignatureStatusFlags : byte { UpToDate = 0, OutOfDate = 16 }
 
-            [StructLayout(LayoutKind.Sequential)]
-            public struct ProviderStatus
-            {
-                public SignatureStatusFlags SignatureStatus;
-                public AVStatusFlags AVStatus;
-                public ProviderFlags SecurityProvider;
-                public byte unused;
-            }
+            [StructLayout(LayoutKind.Sequential)] public struct ProviderStatus { public SignatureStatusFlags SignatureStatus; public AVStatusFlags AVStatus; public ProviderFlags SecurityProvider; public byte unused; }
+
             public static unsafe ProviderStatus ConvertToProviderStatus(uint val) => *(ProviderStatus*)&val;
-            private static List<(string DisplayName,ProviderStatus Status)> GetSecurityInfo()
+
+            private static List<(string DisplayName, ProviderStatus Status)> GetSecurityInfo()
             {
                 List<(string, ProviderStatus)> ProvidersList = new List<(string, ProviderStatus)>();
 
@@ -176,6 +302,7 @@ namespace DisableWindowsDefender
             }
 
             private static bool AlredyVerified = false;
+
             private static void VerifySecurityProvider()
             {
                 if (AlredyVerified) { return; }
@@ -187,19 +314,17 @@ namespace DisableWindowsDefender
                     throw new Exception("Windows defender is not configured as security provider");
                 }
 
-                if (Result.Count <= 0)
-                {
-                    throw new Exception("No security provider founded");
-                }
+                if (Result.Count <= 0) throw new Exception("No security provider founded");
             }
-
 
             public static void DisableWindowsDefender()
             {
                 VerifySecurityProvider();
 
                 KillProcess("smartscreen");
+
                 DefenderSetConfig.DisableSmartScreen();
+
                 DisableAutoRunRegedit("SecurityHealth");
 
                 RunPowerShellCommand("Set-MpPreference -DisableIOAVProtection $true");
@@ -237,7 +362,7 @@ namespace DisableWindowsDefender
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
 
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\DomainProfile");
-                WriteRegristyKey(@Registry.LocalMachine,@"Software\Policies\Microsoft\WindowsFirewall\DomainProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
+                WriteRegristyKey(@Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\DomainProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\DomainProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
 
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PrivateProfile");
@@ -247,8 +372,6 @@ namespace DisableWindowsDefender
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PublicProfile");
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PublicProfile", "DisableNotifications", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\WindowsFirewall\PublicProfile", "EnableFirewall", "0", RegistryValueKind.DWord);
-
-
 
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender");
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender", "DisableAntiSpyware", "1", RegistryValueKind.DWord);
@@ -284,10 +407,9 @@ namespace DisableWindowsDefender
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\UX Configuration", "SuppressRebootNotification", "1", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\UX Configuration", "UILockdown", "1", RegistryValueKind.DWord);
 
-
                 CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Device performance and health");
                 WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Device performance and health", "UILockdown", "1", RegistryValueKind.DWord);
-               
+
                 CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Family options");
                 WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Family options", "UILockdown", "1", RegistryValueKind.DWord);
 
@@ -314,54 +436,65 @@ namespace DisableWindowsDefender
                 CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter");
                 WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter", "EnabledV9", "0", RegistryValueKind.DWord);
 
-
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost");
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "EnableWebContentEvaluation", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "PreventOverride", "0", RegistryValueKind.DWord);
-
 
                 CreateRegristyFolder(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge");
                 WriteRegristyKey(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge", "EnabledV9", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge", "PreventOverride", "0", RegistryValueKind.DWord);
 
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh\" /Disable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance\" /Disable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Cleanup\" /Disable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan\" /Disable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Verification\" /Disable");
+                DisableTask("Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh");
+                DisableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance");
+                DisableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Cleanup");
+                DisableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan");
+                DisableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Verification");
 
                 CloseDefenderSettings();
 
-                string DefenderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData).ToString(), @"Microsoft\Windows Defender");
+                string defenderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData).ToString(), @"Microsoft\Windows Defender");
 
-                if (Directory.Exists(DefenderPath))
+                if (Directory.Exists(defenderPath))
                 {
-                    string DefenderScansPath = Path.Combine(DefenderPath, @"Scans");
+                    string defenderScansPath = Path.Combine(defenderPath, @"Scans");
 
-                    string EngineDatabase = Path.Combine(DefenderScansPath, "mpenginedb.db");
+                    string engineDatabase = Path.Combine(defenderScansPath, "mpenginedb.db");
 
-                    if (File.Exists(EngineDatabase))
+                    if (File.Exists(engineDatabase))
                     {
                         try
                         {
-                            File.Delete(EngineDatabase);
-                        } catch { }
+                            File.Delete(engineDatabase);
+                        }
+                        catch { }
                     }
 
-                    string ProtectionHystoryPath = Path.Combine(DefenderScansPath, @"History");
-                    if (Directory.Exists(ProtectionHystoryPath))
+                    string protectionHystoryPath = Path.Combine(defenderScansPath, @"History");
+
+                    if (Directory.Exists(protectionHystoryPath))
                     {
-                        DeleteDir(ProtectionHystoryPath);
+                        DeleteDir(protectionHystoryPath);
                     }
                 }
+
+                DefenderServices.DisableServices();
+
+                RunCmdCommand("sc stop WinDefend");
+                RunCmdCommand("sc stop mpssvc");
             }
 
             public static void EnableWindowsDefender()
             {
+                try
+                {
+                    DefenderServices.EnableServices();
+                }
+                catch { }
+
                 VerifySecurityProvider();
 
-
                 DefenderSetConfig.EnableSmartScreen();
+
                 AcceptAutoRunRegedit("SecurityHealth");
 
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender");
@@ -389,7 +522,7 @@ namespace DisableWindowsDefender
 
                 try
                 {
-                    GetPermissionsOnRegristyKey(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Features");
+                    //GetPermissionsOnRegristyKey(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows Defender\Features");
                     WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows Defender\Features", "TamperProtection", "5", RegistryValueKind.DWord);
                 }
                 catch { }
@@ -412,18 +545,16 @@ namespace DisableWindowsDefender
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center");
                 DeleteRegristyFolderTree(Registry.CurrentUser, @"SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge");
 
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh\" /Enable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance\" /Enable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Cleanup\" /Enable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan\" /Enable");
-                RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"Microsoft\\Windows\\Windows Defender\\Windows Defender Verification\" /Enable");
-
+                EnableTask("Microsoft\\Windows\\ExploitGuard\\ExploitGuard MDM policy Refresh");
+                EnableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Cache Maintenance");
+                EnableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Cleanup");
+                EnableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Scheduled Scan");
+                EnableTask("Microsoft\\Windows\\Windows Defender\\Windows Defender Verification");
 
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter");
 
                 CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\CI\Config");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable", "1", RegistryValueKind.DWord);
-
 
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\WTDS");
                 /*CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\WTDS\Components");
@@ -431,7 +562,6 @@ namespace DisableWindowsDefender
 
                 CreateRegristyFolder(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity");
                 WriteRegristyKey(Registry.LocalMachine, @"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled", "1", RegistryValueKind.DWord);
-
 
                 DeleteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "EnableWebContentEvaluation");
                 DeleteRegristyKey(Registry.LocalMachine, @"Software\Microsoft\Windows\CurrentVersion\AppHost", "PreventOverride");
@@ -443,210 +573,136 @@ namespace DisableWindowsDefender
                 Console.ReadLine();
             }
 
-            public static void CloseDefenderSettings()
+            private static void EnableTask(string path) => SetTask(path, "/Enable");
+
+            private static void DisableTask(string path) => SetTask(path, "/Disable");
+
+            private static void SetTask(string path, string param) => RunProcess(Path.Combine(Environment.SystemDirectory, @"schtasks.exe"), "/Change /TN \"" + path + "\" " + param);
+
+            public static void CloseDefenderSettings() => KillProcess("SecHealthUI");
+
+            private static void DeleteDir(string path)
             {
-                foreach (Process Proc in Process.GetProcessesByName("SecHealthUI"))
+                DirectoryInfo dir = new DirectoryInfo(path);
+
+                foreach (FileInfo file in dir.GetFiles())
                 {
                     try
                     {
-                        Proc.Kill();
+                        file.Delete();
                     }
-                    catch { } // we dont care if it fails
-                }
-            }
-
-            private static void DeleteDir(string Path)
-            {
-                DirectoryInfo Dir = new DirectoryInfo(Path);
-
-                foreach (FileInfo File in Dir.GetFiles())
-                {
-                    try
-                    {
-                        File.Delete();
-                    }
-                    catch { } // probably dont care too
+                    catch { }
                 }
 
-                foreach (DirectoryInfo SubDir in Dir.GetDirectories())
+                foreach (DirectoryInfo subDir in dir.GetDirectories())
                 {
                     try
                     {
-                        SubDir.Delete(true);
+                        subDir.Delete(true);
                     }
                     catch
                     {
-                        try
-                        {
-                            DeleteDir(SubDir.FullName);
-                        }
-                        catch { } // same
+                        DeleteDir(subDir.FullName);
                     }
                 }
             }
 
-            public static void WriteRegristyKey(RegistryKey Hive, string Key, string Name, dynamic Data, RegistryValueKind Kind)
+            public static void WriteRegristyKey(RegistryKey hive, string key, string name, dynamic data, RegistryValueKind kind)
             {
                 try
                 {
-                    Hive.OpenSubKey(Key, true).SetValue(Name, Data, Kind);
+                    hive.OpenSubKey(key, true).SetValue(name, data, kind);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error writing on " + Hive + "\\" + Key + " \"" + Name + "\"\n" + ex.ToString());
+                    Console.WriteLine("Error writing on " + hive + "\\" + key + " \"" + name + "\"\n" + ex.ToString());
                 }
             }
-            public static void DeleteRegristyKey(RegistryKey Hive, string Key, string Name)
+
+            public static void DeleteRegristyKey(RegistryKey hive, string key, string name)
             {
                 try
                 {
-                    Hive.OpenSubKey(Key, true).DeleteValue(Name);
+                    hive.OpenSubKey(key, true).DeleteValue(name);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error deleting on " + Hive + "\\" + Key + " \"" + Name + "\"\n" + ex.ToString());
+                    Console.WriteLine("Error deleting on " + hive + "\\" + key + " \"" + name + "\"\n" + ex.ToString());
                 }
             }
 
-
-            private static void CreateRegristyFolder(RegistryKey Hive, string Key)
+            private static void CreateRegristyFolder(RegistryKey hive, string key)
             {
                 try
                 {
-                    Hive.CreateSubKey(Key);
+                    hive.CreateSubKey(key);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error creating folder on " + Hive + "\\" + Key + "\n" + ex.ToString());
+                    Console.WriteLine("Error creating folder on " + hive + "\\" + key + "\n" + ex.ToString());
                 }
             }
 
-            private static void DeleteRegristyFolderTree(RegistryKey Hive, string Key)
+            private static void DeleteRegristyFolderTree(RegistryKey hive, string key)
             {
                 try
                 {
-                    RegistryKey Fonder = Hive.OpenSubKey(Key, true);
+                    RegistryKey regFolder = hive.OpenSubKey(key, true);
 
-                    if (Fonder != null)
+                    if (regFolder != null)
                     {
-                        foreach (string Value in Fonder.GetValueNames())
+                        foreach (string Value in regFolder.GetValueNames())
                         {
                             try
                             {
-                                Fonder.DeleteValue(Value);
+                                regFolder.DeleteValue(Value);
                             }
-                            catch { } //Dont care x3
+                            catch { }
                         }
                     }
 
-                    Registry.LocalMachine.DeleteSubKeyTree(Key, false);
+                    Registry.LocalMachine.DeleteSubKeyTree(key, false);
                 }
-                catch (UnauthorizedAccessException) { } //filtrer the UnauthorizedAccessException
+                catch (UnauthorizedAccessException) { }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error deleting fonder " + Hive + "\\" + Key + "\n" + ex.ToString());
+                    Console.WriteLine("Error deleting fonder " + hive + "\\" + key + "\n" + ex.ToString());
                 }
-            }
-
-            public static bool GetPermissionsOnRegristyKey(string name)
-            {
-                try
-                {
-                    SID_IDENTIFIER_AUTHORITY sidNTAuthority = SECURITY_NT_AUTHORITY;
-                    IntPtr sidAdmin = IntPtr.Zero;
-                    AllocateAndInitializeSid(ref sidNTAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, ref sidAdmin);
-
-                    EXPLICIT_ACCESS[] explicitAccesss = new EXPLICIT_ACCESS[1];
-                    explicitAccesss[0].grfAccessPermissions = ACCESS_MASK.GENERIC_ALL;
-                    explicitAccesss[0].grfAccessMode = ACCESS_MODE.SET_ACCESS;
-                    explicitAccesss[0].grfInheritance = NO_INHERITANCE;
-                    explicitAccesss[0].Trustee.TrusteeForm = TRUSTEE_FORM.TRUSTEE_IS_SID;
-                    explicitAccesss[0].Trustee.TrusteeType = TRUSTEE_TYPE.TRUSTEE_IS_GROUP;
-                    explicitAccesss[0].Trustee.ptstrName = sidAdmin;
-
-                    IntPtr acl = IntPtr.Zero;
-                    SetEntriesInAcl(1, ref explicitAccesss[0], (IntPtr)0, ref acl);
-
-                    Action<string, bool> setPrivilege = (privilege, allow) =>
-                    {
-                        TOKEN_PRIVILEGES tokenPrivileges = new TOKEN_PRIVILEGES();
-                        OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out IntPtr token);
-
-                        if (allow)
-                        {
-                            LUID luid;
-                            LookupPrivilegeValueA(null, privilege, out luid);
-                            tokenPrivileges.PrivilegeCount = 1;
-                            tokenPrivileges.Privileges = new LUID_AND_ATTRIBUTES[1];
-                            tokenPrivileges.Privileges[0].Luid = luid;
-                            tokenPrivileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-                        }
-
-                        AdjustTokenPrivileges(token, false, ref tokenPrivileges, 0, IntPtr.Zero, IntPtr.Zero);
-                        CloseHandle(token);
-                    };
-                    setPrivilege(SE_TAKE_OWNERSHIP_NAME, true);
-
-                    SetNamedSecurityInfo(name, WindowsDefender.SE_OBJECT_TYPE.SE_REGISTRY_KEY, SECURITY_INFORMATION.OWNER_SECURITY_INFORMATION, sidAdmin, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
-                    setPrivilege(SE_TAKE_OWNERSHIP_NAME, false);
-                    SetNamedSecurityInfo(name, WindowsDefender.SE_OBJECT_TYPE.SE_REGISTRY_KEY, SECURITY_INFORMATION.DACL_SECURITY_INFORMATION, IntPtr.Zero, IntPtr.Zero, acl, IntPtr.Zero);
-
-                    FreeSid(sidAdmin);
-                    LocalFree(acl);
-                }
-                catch
-                {
-                    return false;
-                }
-
-                return true;
             }
 
             private static void KillProcess(string Processname)
             {
-                foreach (Process Proc in Process.GetProcessesByName(Processname))
+                foreach (Process proc in Process.GetProcessesByName(Processname))
                 {
                     try
                     {
-                        Proc.Kill();
+                        proc.Kill();
                     }
-                    catch {  } // dont care x4
+                    catch { }
                 }
             }
 
-            private static void AcceptAutoRunRegedit(string AplicationRegeditName)
-            {
-                Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", AplicationRegeditName, new byte[] { 0002, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00 }, RegistryValueKind.Binary);
-            }
+            private static void AcceptAutoRunRegedit(string aplicationRegeditName) => Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", aplicationRegeditName, new byte[] { 0002, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00 }, RegistryValueKind.Binary);
 
-            private static void DisableAutoRunRegedit(string AplicationRegeditName)
-            {
-                Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", AplicationRegeditName, new byte[] { 0099, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99 }, RegistryValueKind.Binary);
-            }
+            private static void DisableAutoRunRegedit(string aplicationRegeditName) => Registry.SetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run", aplicationRegeditName, new byte[] { 0099, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99 }, RegistryValueKind.Binary);
 
-            private static string RunPowerShellCommand(string Command)
-            {
-                return RunProcess(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -EncodedCommand \"" + Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(Command)) + "\"");
-            }
+            private static string RunPowerShellCommand(string command) => RunProcess(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"), "-NoLogo -NonInteractive -NoProfile -ExecutionPolicy Bypass -EncodedCommand \"" + Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(command)) + "\"");
 
-            private static string RunCmdCommand(string Command)
-            {
-                return RunProcess(Path.Combine(Environment.SystemDirectory, "Cmd.exe"), "/d /q /c " + Command);
-            }
-            private static string RunProcess(string FilePath, string FileArguments)
+            private static string RunCmdCommand(string command) => RunProcess(Path.Combine(Environment.SystemDirectory, "Cmd.exe"), "/d /q /c " + command);
+
+            private static string RunProcess(string filePath, string fileArguments)
             {
                 try
                 {
-                    Process ComandoAEjecutar = new Process();
-                    ComandoAEjecutar.StartInfo.FileName = FilePath;
-                    ComandoAEjecutar.StartInfo.Arguments = FileArguments;
-                    ComandoAEjecutar.StartInfo.UseShellExecute = false;
-                    ComandoAEjecutar.StartInfo.RedirectStandardOutput = true;
-                    ComandoAEjecutar.StartInfo.RedirectStandardError = true;
-                    ComandoAEjecutar.Start();
-                    string OutputDelComando = ComandoAEjecutar.StandardOutput.ReadToEnd();
+                    Process comandoAEjecutar = new Process();
+                    comandoAEjecutar.StartInfo.FileName = filePath;
+                    comandoAEjecutar.StartInfo.Arguments = fileArguments;
+                    comandoAEjecutar.StartInfo.UseShellExecute = false;
+                    comandoAEjecutar.StartInfo.RedirectStandardOutput = true;
+                    comandoAEjecutar.StartInfo.RedirectStandardError = true;
+                    comandoAEjecutar.Start();
 
-                    return OutputDelComando;
+                    return comandoAEjecutar.StandardOutput.ReadToEnd();
                 }
                 catch (Exception ex)
                 {
@@ -656,32 +712,20 @@ namespace DisableWindowsDefender
                 return null;
             }
 
-            public static void AddExclusionPath(string Pathe)
+            public static void AddExclusionPath(string path)
             {
-                if (Pathe.EndsWith("\\"))
-                {
-                    Pathe = Pathe.Remove(Pathe.Length - 1);
-                }
+                if (path.EndsWith("\\")) path = path.Remove(path.Length - 1);
 
-                RunPowerShellCommand("Add-MpPreference -ExclusionPath '" + Pathe + "'");
+                RunPowerShellCommand("Add-MpPreference -ExclusionPath '" + path + "'");
             }
 
-            public static void AddExclusionExtension(string Extension)
-            {
-                RunPowerShellCommand("Add-MpPreference -ExclusionExtension '" + Extension + "'");
-            }
+            public static void AddExclusionExtension(string extension) => RunPowerShellCommand("Add-MpPreference -ExclusionExtension '" + extension + "'");
 
-            public static void AddExclusionProcess(string ProcessName)
-            {
-                RunPowerShellCommand("Add-MpPreference -ExclusionProcess '" + ProcessName + "'");
-            }
+            public static void AddExclusionProcess(string processName) => RunPowerShellCommand("Add-MpPreference -ExclusionProcess '" + processName + "'");
 
             public static class DefenderGetConfig
             {
-                public static ServiceController GetWIndowsDefenderService()
-                {
-                    return new ServiceController("WinDefend");
-                }
+                public static ServiceController GetWIndowsDefenderService() => new ServiceController("WinDefend");
 
                 public static bool IsDefenderInstalled()
                 {
@@ -721,46 +765,24 @@ namespace DisableWindowsDefender
 
                 public static bool IsRealtimeProtectionEnabled()
                 {
-                    string OutputCommand = RunPowerShellCommand("Get-MpPreference | select DisableRealtimeMonitoring").ToLower();
-
-                    if (OutputCommand.Contains("true"))
-                    {
-                        return false;
-                    }
-                    return true;
+                    return RunPowerShellCommand("Get-MpPreference | select DisableRealtimeMonitoring").ToLower().Contains("true");
                 }
 
                 public static bool IsMAPSReportingEnabled()
                 {
-                    string OutputCommand = RunPowerShellCommand("Get-MpPreference | select MAPSReporting").ToLower();
-
-                    if (OutputCommand.Contains("0"))
-                    {
-                        return false;
-                    }
-                    return true;
+                    return RunPowerShellCommand("Get-MpPreference | select MAPSReporting").Contains("0");
                 }
 
                 public static bool IsSubmintSamplesConsentEnabled()
                 {
-                    string OutputCommand = RunPowerShellCommand("Get-MpPreference | select SubmitSamplesConsent").ToLower();
+                    string outputCommand = RunPowerShellCommand("Get-MpPreference | select SubmitSamplesConsent").ToLower();
 
-                    if (OutputCommand.Contains("0") || OutputCommand.Contains("2"))
-                    {
-                        return false;
-                    }
-                    return true;
+                    return outputCommand.Contains("0") || outputCommand.Contains("2");
                 }
 
                 public static bool IsTamperProtectionEnabled()
                 {
-                    string OutputCommand = RunPowerShellCommand("Get-MpComputerStatus | select IsTamperProtected").ToLower();
-
-                    if (OutputCommand.Contains("true"))
-                    {
-                        return true;
-                    }
-                    return false;
+                    return RunPowerShellCommand("Get-MpComputerStatus | select IsTamperProtected").ToLower().Contains("true");
                 }
 
                 public static bool IsDataExecutionPreventionEnabled()
@@ -770,26 +792,26 @@ namespace DisableWindowsDefender
 
                 public static bool IsTpmEnabled()
                 {
-                    string Info = RunCmdCommand(@"wmic /namespace:\\root\cimv2\security\microsofttpm path win32_tpm get IsEnabled_InitialValue").Split('\n')[1].Trim();
+                    string info = RunCmdCommand(@"wmic /namespace:\\root\cimv2\security\microsofttpm path win32_tpm get IsEnabled_InitialValue").Split('\n')[1].Trim();
 
-                    if (string.IsNullOrWhiteSpace(Info))
+                    if (string.IsNullOrWhiteSpace(info))
                     {
                         return false;
                     }
 
-                    return bool.Parse(Info);
+                    return bool.Parse(info);
                 }
 
                 public static bool IsSecureBootEnabled()
                 {
-                    string Info = RunPowerShellCommand("Confirm-SecureBootUEFI");
+                    string info = RunPowerShellCommand("Confirm-SecureBootUEFI");
 
-                    if (string.IsNullOrWhiteSpace(Info))
+                    if (string.IsNullOrWhiteSpace(info))
                     {
                         return false;
                     }
 
-                    return bool.Parse(Info);
+                    return bool.Parse(info);
                 }
             }
 
@@ -799,7 +821,6 @@ namespace DisableWindowsDefender
                 {
                     CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer");
                     WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer", "SmartScreenEnabled", "On", RegistryValueKind.String);
-
                     DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System");
                 }
 
@@ -807,99 +828,37 @@ namespace DisableWindowsDefender
                 {
                     CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer");
                     WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer", "SmartScreenEnabled", "Off", RegistryValueKind.String);
-
                     CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System");
                     WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows\System", "EnableSmartScreen", 0, RegistryValueKind.DWord);
-
                 }
             }
 
-            [StructLayoutAttribute(LayoutKind.Sequential)]
-            private struct SID_IDENTIFIER_AUTHORITY
+            public static class DefenderServices
             {
-                [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 6, ArraySubType = UnmanagedType.I1)]
-                public byte[] Value;
+                private static Dictionary<string, int> defenderConfigDefault = new Dictionary<string, int>()
+                {
+                    {"WinDefend",2 },
+                    {"Sense",3 },
+                    {"WdFilter",0 },
+                    {"WdNisDrv",3 },
+                    {"WdNisSvc",3 },
+                    {"WdBoot",0 },
+
+                    {"mpssvc",2 },
+                };
+
+                public static void DisableServices()
+                {
+                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + defenderServ.Key, true).SetValue("Start", 4, RegistryValueKind.DWord);
+                }
+
+                public static void EnableServices()
+                {
+                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + defenderServ.Key, true).SetValue("Start", defenderServ.Value, RegistryValueKind.DWord);
+                }
             }
+        }
 
-            [StructLayoutAttribute(LayoutKind.Sequential)]
-            private struct TRUSTEE
-            { public System.IntPtr pMultipleTrustee; public MULTIPLE_TRUSTEE_OPERATION MultipleTrusteeOperation; public TRUSTEE_FORM TrusteeForm; public TRUSTEE_TYPE TrusteeType; public IntPtr ptstrName; }
-
-            [StructLayoutAttribute(LayoutKind.Sequential)]
-            private struct EXPLICIT_ACCESS
-            { public ACCESS_MASK grfAccessPermissions; public ACCESS_MODE grfAccessMode; public uint grfInheritance; public TRUSTEE Trustee; }
-
-            [StructLayoutAttribute(LayoutKind.Sequential)]
-            private struct TOKEN_PRIVILEGES
-            {
-                public uint PrivilegeCount; [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 1, ArraySubType = UnmanagedType.Struct)]
-                public LUID_AND_ATTRIBUTES[] Privileges;
-            }
-
-            [StructLayoutAttribute(LayoutKind.Sequential)]
-            private struct LUID_AND_ATTRIBUTES
-            { public LUID Luid; public uint Attributes; }
-
-            [StructLayoutAttribute(LayoutKind.Sequential)]
-            private struct LUID
-            { public uint LowPart; public int HighPart; }
-
-            private enum TRUSTEE_TYPE
-            { TRUSTEE_IS_GROUP, }
-
-            private enum TRUSTEE_FORM
-            { TRUSTEE_IS_SID, }
-
-            private enum MULTIPLE_TRUSTEE_OPERATION
-            { }
-
-            public enum SE_OBJECT_TYPE
-            { SE_UNKNOWN_OBJECT_TYPE = 0, SE_FILE_OBJECT, SE_SERVICE, SE_PRINTER, SE_REGISTRY_KEY, SE_LMSHARE, SE_KERNEL_OBJECT, SE_WINDOW_OBJECT, SE_DS_OBJECT, SE_DS_OBJECT_ALL, SE_PROVIDER_DEFINED_OBJECT, SE_WMIGUID_OBJECT, SE_REGISTRY_WOW64_32KEY }
-
-            [Flags]
-            private enum ACCESS_MASK : uint
-            { GENERIC_ALL = 0x10000000, }
-
-            [Flags]
-            private enum SECURITY_INFORMATION : uint
-            { OWNER_SECURITY_INFORMATION = 0x00000001, DACL_SECURITY_INFORMATION = 0x00000004, }
-
-            private enum ACCESS_MODE
-            { SET_ACCESS }
-
-            private const string SE_TAKE_OWNERSHIP_NAME = "SeTakeOwnershipPrivilege"; private static SID_IDENTIFIER_AUTHORITY SECURITY_NT_AUTHORITY = new SID_IDENTIFIER_AUTHORITY() { Value = new byte[] { 0, 0, 0, 0, 0, 5 } }; private const UInt32 TOKEN_ADJUST_PRIVILEGES = 0x0020; private const int NO_INHERITANCE = 0x0; private const int SECURITY_BUILTIN_DOMAIN_RID = 0x00000020; private const int DOMAIN_ALIAS_RID_ADMINS = 0x00000220; private const int TOKEN_QUERY = 8; private const int SE_PRIVILEGE_ENABLED = 2; [DllImportAttribute("advapi32.dll", EntryPoint = "OpenProcessToken")]
-            [return: MarshalAsAttribute(UnmanagedType.Bool)]
-            private static extern bool OpenProcessToken([InAttribute]
-
-IntPtr ProcessHandle, uint DesiredAccess, out IntPtr TokenHandle); [DllImportAttribute("advapi32.dll", EntryPoint = "AllocateAndInitializeSid")]
-
-            [return: MarshalAsAttribute(UnmanagedType.Bool)]
-            private static extern bool AllocateAndInitializeSid([InAttribute] ref SID_IDENTIFIER_AUTHORITY pIdentifierAuthority, byte nSubAuthorityCount, uint nSubAuthority0, uint nSubAuthority1, uint nSubAuthority2, uint nSubAuthority3, uint nSubAuthority4, uint nSubAuthority5, uint nSubAuthority6, uint nSubAuthority7, ref IntPtr pSid); [DllImportAttribute("kernel32.dll", EntryPoint = "CloseHandle")]
-
-            [return: MarshalAsAttribute(UnmanagedType.Bool)]
-            private static extern bool CloseHandle([InAttribute] IntPtr hObject); [DllImportAttribute("kernel32.dll", EntryPoint = "GetCurrentProcess")]
-            private static extern IntPtr GetCurrentProcess(); [DllImportAttribute("advapi32.dll", EntryPoint = "FreeSid")]
-            private static extern IntPtr FreeSid([InAttribute] IntPtr pSid); [DllImportAttribute("kernel32.dll", EntryPoint = "LocalFree")]
-            private static extern IntPtr LocalFree(IntPtr hMem); [DllImportAttribute("advapi32.dll", EntryPoint = "LookupPrivilegeValueA")]
-
-            [return: MarshalAsAttribute(UnmanagedType.Bool)]
-            private static extern bool LookupPrivilegeValueA([InAttribute]
-[MarshalAsAttribute(UnmanagedType.LPStr)]
-string lpSystemName, [InAttribute]
-[MarshalAsAttribute(UnmanagedType.LPStr)]
-string lpName, [OutAttribute]
-
-out LUID lpLuid); [DllImportAttribute("advapi32.dll", EntryPoint = "AdjustTokenPrivileges")]
-
-            [return: MarshalAsAttribute(UnmanagedType.Bool)]
-            private static extern bool AdjustTokenPrivileges([InAttribute()]
-IntPtr TokenHandle, [MarshalAsAttribute(UnmanagedType.Bool)]
-bool DisableAllPrivileges, [InAttribute()]
-
-ref TOKEN_PRIVILEGES NewState, uint BufferLength, IntPtr PreviousState, IntPtr ReturnLength); [DllImport("advapi32.dll", CharSet = CharSet.Auto)]
-            private static extern int SetNamedSecurityInfo(string pObjectName, SE_OBJECT_TYPE ObjectType, SECURITY_INFORMATION SecurityInfo, IntPtr psidOwner, IntPtr psidGroup, IntPtr pDacl, IntPtr pSacl); [DllImport("Advapi32.dll", EntryPoint = "SetEntriesInAclA", CallingConvention = CallingConvention.Winapi, SetLastError = true, CharSet = CharSet.Ansi)]
-            private static extern int SetEntriesInAcl(int CountofExplicitEntries, ref EXPLICIT_ACCESS ea, IntPtr OldAcl, ref IntPtr NewAcl);
-        }   
         /*powershell.exe -ExecutionPolicy Bypass -command "Set-MpPreference -DisableRealtimeMonitoring $false"
 powershell.exe -ExecutionPolicy Bypass -command "Set-MpPreference -DisableRemovableDriveScanning $false"
 powershell.exe -ExecutionPolicy Bypass -command "Set-MpPreference -DisableArchiveScanning $false"
