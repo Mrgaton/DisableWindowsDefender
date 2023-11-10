@@ -1,0 +1,8 @@
+﻿################################################################################
+# Este archivo .gitignore ha sido creado automáticamente por Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/DisableWindowsDefender
+/DisableWindowsDefender/.vscode
+/DisableWindowsDefender/bin/Debug
+/DisableWindowsDefender/obj
