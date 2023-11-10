@@ -843,7 +843,6 @@ namespace DisableWindowsDefender
                     {"WdNisDrv",3 },
                     {"WdNisSvc",3 },
                     {"WdBoot",0 },
-
                     {"mpssvc",2 },
                 };
 
