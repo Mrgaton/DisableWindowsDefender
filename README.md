@@ -6,6 +6,8 @@
 [![MIT License][img_license]][license]
 ![visitors](https://visitor-badge.laobi.icu/badge?page_id=Mrgaton.DisableWindowsDefender)
 
+[![Downloads](https://img.shields.io/github/downloads//Mrgaton/DisableWindowsDefender/total?color=green)]()
+
 [codefactor]: https://www.codefactor.io/repository/github/Mrgaton/DisableWindowsDefender/overview
 [issues]: https://github.com/mkaring/Mrgaton/DisableWindowsDefender
 [license]: LICENSE
