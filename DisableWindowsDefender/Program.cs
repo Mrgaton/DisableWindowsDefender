@@ -835,6 +835,8 @@ namespace DisableWindowsDefender
 
             public static class DefenderServices
             {
+                private static string serviceConfigPath = @"SYSTEM\CurrentControlSet\Services\";
+
                 private static Dictionary<string, int> defenderConfigDefault = new Dictionary<string, int>()
                 {
                     {"WinDefend",2 },
@@ -848,12 +850,12 @@ namespace DisableWindowsDefender
 
                 public static void DisableServices()
                 {
-                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + defenderServ.Key, true).SetValue("Start", 4, RegistryValueKind.DWord);
+                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(serviceConfigPath + defenderServ.Key, true).SetValue("Start", 4, RegistryValueKind.DWord);
                 }
 
                 public static void EnableServices()
                 {
-                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\" + defenderServ.Key, true).SetValue("Start", defenderServ.Value, RegistryValueKind.DWord);
+                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(serviceConfigPath + defenderServ.Key, true).SetValue("Start", defenderServ.Value, RegistryValueKind.DWord);
                 }
             }
         }
