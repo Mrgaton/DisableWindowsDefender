@@ -4,11 +4,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Management;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Remoting.Channels;
 using System.Security.Principal;
 using System.ServiceProcess;
+using System.Threading;
 using static DisableWindowsDefender.program.ChildCreator;
 
 namespace DisableWindowsDefender
@@ -19,14 +22,40 @@ namespace DisableWindowsDefender
 
         public static string WhoAmI() => WindowsIdentity.GetCurrent().Name;
 
+        /*private static string GetCommandLine(Process process)
+        {
+            try
+            {
+                using (ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + process.Id))
+                using (ManagementObjectCollection objects = searcher.Get())
+                {
+                    return objects.Cast<ManagementBaseObject>().SingleOrDefault()?["CommandLine"]?.ToString();
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }*/
+
         [STAThread]
         private static void Main(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(e.ExceptionObject.ToString());
+                Thread.Sleep(2000);
+                Environment.Exit(e.ExceptionObject.GetHashCode());
+            };
+
+
             ChangeConsoleColor(ConsoleColor.DarkMagenta);
             Console.WriteLine("Espere mientras cargamos algunas variables de entorno");
             Console.WriteLine();
 
             //Console.WriteLine(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class PInvoke { [DllImport(\"user32.dll\")] public static extern int SendMessage(int hWnd, int hMsg, int wParam, int lParam); }'\r\n[PInvoke]::SendMessage(0xffff, 0x0112, 0xf170, 2);")));
+            //Console.WriteLine(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("echo \"Hello world\"")));
 
             /*  Console.WriteLine(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("$c2F4=2;$cnV=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);if($cnV){$b2Fu=(Get-Item .).FullName;$eHVt=1;Add-MpPreference -ExclusionPath $env:TEMP};Start-Sleep -Seconds(Get-Random -Min $eHVt -Max $c2F4);$bW8A=Get-CimInstance -ClassName Win32_OperatingSystem|Select LastBootUpTime")));
                Console.ReadKey();*/
@@ -49,8 +78,26 @@ namespace DisableWindowsDefender
                     createNewConsole = true,
                 });
 
+                /*ChildCreator.Run(new StartInfo()
+                {
+                    parentId = (uint)Process.GetProcessesByName("TrustedInstaller")[0].Id,
+                    fileName = "C:\\Windows\\regedit.exe",
+                    arguments = " ",
+                    createNewConsole = true,
+                }); 
+                
+                ChildCreator.Run(new StartInfo()
+                {
+                    parentId = (uint)Process.GetProcessesByName("TrustedInstaller")[0].Id,
+                    fileName = "C:\\Windows\\system32\\cmd.exe",
+                    arguments = " ",
+                    createNewConsole = true,
+                });*/
+
                 Environment.Exit(1);
             }
+
+            Console.WriteLine(Environment.UserDomainName + "\\" + Environment.UserName);
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("Running as: " + WhoAmI());
@@ -384,7 +431,28 @@ namespace DisableWindowsDefender
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender", "AllowFastService", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender", "AllowFastServiceStartup", "0", RegistryValueKind.DWord);
                 WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender", "PUAProtection", "0", RegistryValueKind.DWord);
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender", "DisableLocalAdminMerge", "0", RegistryValueKind.DWord);
 
+
+                //Windows Defender Security 
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center");
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications", "DisableEnhancedNotifications", "1", RegistryValueKind.DWord);
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications", "DisableNotifications", "1", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\App and Browser protection");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\App and Browser protection", "DisallowExploitProtectionOverride", "0", RegistryValueKind.DWord);
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\App and Browser protection", "UILockdown", "1", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Firewall and network protection");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Firewall and network protection", "UILockdown", "1", RegistryValueKind.DWord);
+
+                CreateRegristyFolder(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray");
+                WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray", "HideSystray", "1", RegistryValueKind.DWord);
+
+
+                //Windows Defender
                 CreateRegristyFolder(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\Features");
                 WriteRegristyKey(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender\Features", "DeviceControlEnabled", "0", RegistryValueKind.DWord);
 
@@ -452,29 +520,13 @@ namespace DisableWindowsDefender
 
                 CloseDefenderSettings();
 
-                string defenderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData).ToString(), @"Microsoft\Windows Defender");
+                string defenderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), @"Microsoft\Windows Defender");
 
                 if (Directory.Exists(defenderPath))
                 {
                     string defenderScansPath = Path.Combine(defenderPath, @"Scans");
 
-                    string engineDatabase = Path.Combine(defenderScansPath, "mpenginedb.db");
-
-                    if (File.Exists(engineDatabase))
-                    {
-                        try
-                        {
-                            File.Delete(engineDatabase);
-                        }
-                        catch { }
-                    }
-
-                    string protectionHystoryPath = Path.Combine(defenderScansPath, @"History");
-
-                    if (Directory.Exists(protectionHystoryPath))
-                    {
-                        DeleteDir(protectionHystoryPath);
-                    }
+                    if (Directory.Exists(defenderScansPath)) DeleteDir(defenderScansPath);
                 }
 
                 DefenderServices.DisableServices();
@@ -489,20 +541,31 @@ namespace DisableWindowsDefender
                 {
                     DefenderServices.EnableServices();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
 
                 VerifySecurityProvider();
+
+                DefenderServices.EnableServices();
+
+                RunCmdCommand("sc start WinDefend");
+                RunCmdCommand("sc start mpssvc");
 
                 DefenderSetConfig.EnableSmartScreen();
 
                 AcceptAutoRunRegedit("SecurityHealth");
 
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender");
+                DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\Policy Manager");
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\MpEngine");
+                DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\SmartScreen");
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\Real-Time Protection");
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\Reportin");
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\SpyNet");
                 DeleteRegristyFolderTree(Registry.LocalMachine, @"Software\Policies\Microsoft\Windows Defender\UX Configuration");
+                DeleteRegristyFolderTree(Registry.LocalMachine, @"SOFTWARE\Policies\Microsoft\Windows Defender Security Center");
 
                 RunPowerShellCommand("Set-MpPreference -DisableIOAVProtection $false");
                 RunPowerShellCommand("Set-MpPreference -DisableRealtimeMonitoring $false");
@@ -569,8 +632,6 @@ namespace DisableWindowsDefender
                 RunProcess(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Windows Defender\MpCmdRun.exe", "-SignatureUpdate");
 
                 CloseDefenderSettings();
-
-                Console.ReadLine();
             }
 
             private static void EnableTask(string path) => SetTask(path, "/Enable");
@@ -794,10 +855,7 @@ namespace DisableWindowsDefender
                 {
                     string info = RunCmdCommand(@"wmic /namespace:\\root\cimv2\security\microsofttpm path win32_tpm get IsEnabled_InitialValue").Split('\n')[1].Trim();
 
-                    if (string.IsNullOrWhiteSpace(info))
-                    {
-                        return false;
-                    }
+                    if (string.IsNullOrWhiteSpace(info)) return false;
 
                     return bool.Parse(info);
                 }
@@ -806,10 +864,7 @@ namespace DisableWindowsDefender
                 {
                     string info = RunPowerShellCommand("Confirm-SecureBootUEFI");
 
-                    if (string.IsNullOrWhiteSpace(info))
-                    {
-                        return false;
-                    }
+                    if (string.IsNullOrWhiteSpace(info)) return false;
 
                     return bool.Parse(info);
                 }
@@ -850,12 +905,32 @@ namespace DisableWindowsDefender
 
                 public static void DisableServices()
                 {
-                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(serviceConfigPath + defenderServ.Key, true).SetValue("Start", 4, RegistryValueKind.DWord);
+                    foreach (var defenderServ in defenderConfigDefault)
+                    {
+                        try
+                        {
+                            Registry.LocalMachine.OpenSubKey(serviceConfigPath + defenderServ.Key, true).SetValue("Start", 4, RegistryValueKind.DWord);
+                        }
+                        catch(Exception ex)
+                        {
+                            Console.WriteLine("\nError disabling " + defenderServ.Key + "\n" + ex.ToString());
+                        }
+                    }
                 }
 
                 public static void EnableServices()
                 {
-                    foreach (var defenderServ in defenderConfigDefault) Registry.LocalMachine.OpenSubKey(serviceConfigPath + defenderServ.Key, true).SetValue("Start", defenderServ.Value, RegistryValueKind.DWord);
+                    foreach (var defenderServ in defenderConfigDefault)
+                    {
+                        try
+                        {
+                            Registry.LocalMachine.OpenSubKey(serviceConfigPath + defenderServ.Key, true).SetValue("Start", defenderServ.Value, RegistryValueKind.DWord);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("\nError renabling " + defenderServ.Key + "\n" + ex.ToString());
+                        }
+                    }
                 }
             }
         }

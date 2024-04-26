@@ -10,14 +10,13 @@
 [codefactor]: https://www.codefactor.io/repository/github/Mrgaton/DisableWindowsDefender/overview
 [issues]: https://github.com/mkaring/Mrgaton/DisableWindowsDefender
 [license]: LICENSE
-
 [img_build]: https://ci.appveyor.com/api/projects/status/qht9je5qa5kr5rgd?svg=true&style=flat
 [img_codefactor]: https://www.codefactor.io/repository/github/mrgaton/DisableWindowsDefender/badge
 [img_gitter]: https://img.shields.io/gitter/room/Mrgaton/DisableWindowsDefender.svg?style=flat
 [img_license]: https://img.shields.io/github/license/Mrgaton/DisableWindowsDefender.svg?style=flat
 
-
 Just disables the WindowsDefender
 
-+ No need to restart in safe mode
-- Tamper protection must be disabled frist :C
+- No need to restart in safe mode
+
+* Tamper protection must be disabled frist :C
