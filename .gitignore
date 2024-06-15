@@ -4,5 +4,5 @@
 
 /.vs/DisableWindowsDefender
 /DisableWindowsDefender/.vscode
-/DisableWindowsDefender/bin/Debug
+/DisableWindowsDefender/bin
 /DisableWindowsDefender/obj
